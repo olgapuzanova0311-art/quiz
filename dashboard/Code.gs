@@ -3,7 +3,7 @@
  * + (по желанию) уведомление Веронике в Телеграм.
  *
  * Как подключить:
- * 1. Создайте Google Таблицу → Расширения → Apps Script → вставьте этот код.
+ * 1. В таблице: Расширения → Apps Script → вставьте этот код вместо пустой функции.
  * 2. Если нужно уведомление в Телеграм, впишите TG_TOKEN (токен бота от @BotFather)
  *    и TG_CHAT (id чата Вероники; бот должен быть добавлен в этот чат).
  * 3. Начать развертывание → Новое развертывание → тип «Веб-приложение»,
@@ -11,7 +11,6 @@
  * 4. Вставьте ссылку в index.html в CONFIG.WEBHOOK_URL.
  */
 
-const SHEET_NAME = 'Анкета';
 const TG_TOKEN = '';
 const TG_CHAT = '';
 
@@ -24,7 +23,7 @@ const COLUMNS = [
 function doPost(e) {
   const data = JSON.parse(e.postData.contents);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  const sh = ss.getSheets()[0];
   if (sh.getLastRow() === 0) {
     sh.appendRow(COLUMNS.map(c => c[1]));
     sh.setFrozenRows(1);
