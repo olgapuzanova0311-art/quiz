@@ -98,7 +98,7 @@ var CONFIG = {
   // ссылка на запись эфира про дашборды
   RECORDING_URL: "https://disk.yandex.ru/i/R8sGfk7b_DVy1g",
   // куда ведёт кнопка записи на разбор
-  BOOKING_URL: "https://t.me/puzanovateam",
+  BOOKING_URL: "https://t.me/puzanovateam?text=" + encodeURIComponent("Здравствуйте! Хочу на бесплатный разбор по дашбордам"),
   BOOKING_WORD: "РАЗБОР"
 };
 /* ========================================= */
@@ -243,8 +243,12 @@ function send(event) {
     priority: priority()
   };
   if (!CONFIG.WEBHOOK_URL) return;
+  var body = JSON.stringify(payload);
   try {
-    fetch(CONFIG.WEBHOOK_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload) }).catch(function () {});
+    if (navigator.sendBeacon && navigator.sendBeacon(CONFIG.WEBHOOK_URL, new Blob([body], { type: "text/plain;charset=utf-8" }))) return;
+  } catch (e) {}
+  try {
+    fetch(CONFIG.WEBHOOK_URL, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" }, body: body }).catch(function () {});
   } catch (e) {}
 }
 
@@ -265,7 +269,7 @@ function final() {
     '<div class="cta"><h2>Бесплатный разбор: как вам заработать на дашбордах</h2>' +
     "<p>За 40 минут эксперт нашей команды:</p><ul>" + CALL[S.block].map(function (t) { return "<li>" + t + "</li>"; }).join("") + "</ul>" +
     '<a class="btn wide" id="book" href="' + esc(CONFIG.BOOKING_URL) + '" target="_blank" rel="noopener">Записаться на разбор</a>' +
-    "<small>Напишите менеджеру слово «" + esc(CONFIG.BOOKING_WORD) + "». Мест немного, эксперты берут по несколько человек в день</small></div>";
+    "<small>Откроется чат с менеджером, сообщение уже будет набрано, просто отправьте его. Мест немного, эксперты берут по несколько человек в день</small></div>";
   document.getElementById("book").addEventListener("click", function () { send("booking_click"); });
 }
 

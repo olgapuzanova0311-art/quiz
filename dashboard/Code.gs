@@ -20,8 +20,19 @@ const COLUMNS = [
   ['goal', 'Цель через 3 мес, ₽'], ['block', 'Что мешает'], ['exp', 'Опыт']
 ];
 
+// Проверка: откройте ссылку веб-приложения в браузере. Если всё настроено,
+// увидите «Скрипт работает», а в таблице появится тестовая строка.
+function doGet() {
+  save({ event: 'test', date: new Date().toLocaleString('ru-RU'), name: 'Тестовая строка' });
+  return ContentService.createTextOutput('Скрипт работает, тестовая строка добавлена в таблицу');
+}
+
 function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
+  save(JSON.parse(e.postData.contents));
+  return ContentService.createTextOutput('ok');
+}
+
+function save(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheets()[0];
   if (sh.getLastRow() === 0) {
@@ -46,5 +57,4 @@ function doPost(e) {
       muteHttpExceptions: true
     });
   }
-  return ContentService.createTextOutput('ok');
 }
