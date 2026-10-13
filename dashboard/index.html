@@ -1,0 +1,273 @@
+<title>Запись эфира по дашбордам</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: одна узкая колонка как в мессенджере, 5 коротких вопросов, финал с записью и кнопкой на разбор */
+:root {
+  --bg: #0E0E0E;
+  --surface: #171716;
+  --surface-2: #201F1D;
+  --line: #2C2B28;
+  --fg: #F4F1EA;
+  --muted: #9A968E;
+  --accent: #E8744F;
+  --accent-ink: #0E0E0E;
+  --blue: #6E9BFF;
+  --red: #E5584F;
+  --font: "Montserrat", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --r: 14px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 600px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 64px; }
+.top { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+.back { background: none; border: 1px solid var(--line); color: var(--muted); width: 40px; height: 40px; border-radius: 50%; font: inherit; font-size: 18px; cursor: pointer; flex: none; }
+.back:hover { color: var(--fg); border-color: var(--muted); }
+.back[disabled] { visibility: hidden; }
+.bar { flex: 1; height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .35s ease; }
+.count { color: var(--muted); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
+.eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin: 0 0 10px; }
+h1 { font-size: clamp(30px, 8vw, 42px); line-height: 1.1; font-weight: 800; margin: 0 0 16px; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font-size: clamp(22px, 5.6vw, 27px); line-height: 1.22; font-weight: 700; margin: 0 0 18px; text-wrap: balance; }
+h3 { font-size: 17px; font-weight: 700; margin: 0 0 6px; }
+p { margin: 0 0 12px; max-width: 62ch; }
+.lead { color: var(--muted); font-size: 17px; }
+.stack { display: grid; gap: 10px; }
+.opt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--surface); border: 1.5px solid var(--line); color: var(--fg); padding: 16px 18px; border-radius: var(--r); font: inherit; font-weight: 500; cursor: pointer; transition: border-color .15s, background .15s; }
+.opt:hover { border-color: var(--muted); }
+.opt.on { border-color: var(--accent); background: var(--surface-2); }
+.opt .box { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--muted); flex: none; display: grid; place-items: center; font-size: 13px; color: var(--accent-ink); }
+.opt.on .box { background: var(--accent); border-color: var(--accent); }
+.field { display: grid; gap: 6px; }
+.field label { font-size: 14px; font-weight: 600; }
+input[type=text], input[type=tel] { width: 100%; background: var(--surface); border: 1.5px solid var(--line); color: var(--fg); border-radius: var(--r); padding: 15px 16px; font: inherit; font-size: 17px; }
+input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+input[type=text]:focus, input[type=tel]:focus { border-color: var(--accent); outline: none; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 99px; padding: 16px 28px; font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; text-decoration: none; transition: transform .12s, opacity .15s; }
+.btn:active { transform: scale(.98); }
+.btn[disabled] { opacity: .35; cursor: default; }
+.btn.ghost { background: transparent; color: var(--fg); border: 1.5px solid var(--line); }
+.btn.wide { width: 100%; }
+.actions { margin-top: 24px; }
+.insight { margin-top: 16px; padding: 14px 18px; border-radius: var(--r); background: var(--surface-2); border-left: 3px solid var(--blue); animation: rise .3s ease; }
+.insight p { margin: 0; }
+@keyframes rise { from { opacity: .4; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+.range-val { font-size: 34px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; margin-bottom: 6px; }
+input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
+.range-ends { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+.consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--muted); cursor: pointer; }
+.consent input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; margin-top: 1px; }
+
+/* финал */
+.gap { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 20px; margin: 18px 0 22px; }
+.gap-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.gap-row .cap { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.gap-row .v { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.gap-row .v.acc { color: var(--accent); }
+.track { position: relative; height: 10px; background: var(--surface-2); border-radius: 99px; margin: 14px 0 0; }
+.track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--blue); border-radius: 99px; }
+.rec { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; margin-bottom: 18px; }
+.rec p { margin: 0; color: var(--muted); font-size: 14px; }
+.cta { background: var(--accent); color: var(--accent-ink); border-radius: 22px; padding: 26px 22px; }
+.cta h2 { color: var(--accent-ink); margin-bottom: 12px; }
+.cta ul { margin: 0 0 20px; padding-left: 20px; }
+.cta li { margin-bottom: 8px; font-weight: 500; }
+.cta .btn { background: var(--accent-ink); color: var(--fg); }
+.cta small { display: block; margin-top: 12px; font-size: 13px; font-weight: 600; opacity: .8; }
+.foot { margin-top: 32px; color: var(--muted); font-size: 12px; text-align: center; }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <button class="back" id="back" aria-label="Назад" disabled>←</button>
+    <div class="bar"><i id="prog" style="width:0%"></i></div>
+    <div class="count" id="count"></div>
+  </div>
+  <main id="app" aria-live="polite"></main>
+  <div class="foot">Команда Ольги Пузановой</div>
+</div>
+
+<script>
+/* ===== НАСТРОЙКИ: поменяйте под себя ===== */
+var CONFIG = {
+  // ссылка на веб-приложение Google Apps Script (см. Code.gs). Пусто = ответы никуда не отправляются
+  WEBHOOK_URL: "",
+  // ссылка на запись эфира про дашборды
+  RECORDING_URL: "",
+  // куда ведёт кнопка записи на разбор
+  BOOKING_URL: "https://t.me/puzanovateam",
+  BOOKING_WORD: "РАЗБОР"
+};
+/* ========================================= */
+
+var S = { name: "", seg: null, income: null, goal: null, block: null, exp: null, phone: "", tg: "", consent: false };
+
+var SEG = ["Работаю в найме", "Специалист по маркетплейсам", "Селлер или предприниматель", "Фрилансер, ищу новое направление", "Уже делаю дашборды или автоматизации"];
+var INCOME = ["До 50 тыс.", "50-100 тыс.", "100-200 тыс.", "Больше 200 тыс."];
+var INCOME_VAL = [40000, 75000, 150000, 250000];
+var GOALS = [50000, 80000, 100000, 150000, 200000, 300000, 500000, 700000, 1000000];
+var BLOCK = ["Не знаю, с чего начать", "Боюсь, что не потяну технически", "Не знаю, где искать клиентов", "Не знаю, сколько брать за работу", "Нет времени разбираться"];
+var EXP = ["Таблицы и нейросети почти не трогал", "Пользуюсь, но базово", "Уверенно, уже что-то автоматизировал"];
+
+var SEG_TIP = [
+  "Отлично, дашборды хорошо идут как подработка: заказы делаются вечерами и не требуют сидеть на связи весь день",
+  "Вам проще всех: вы уже знаете, какие цифры важны селлеру, осталось упаковать это в услугу",
+  "Хороший старт: сначала дашборд для себя, а потом это готовый кейс для первых клиентов",
+  "Дашборды удобно добавить к тому, что вы уже делаете, и поднять средний чек",
+  "Супер, значит, вопрос уже не в навыке, а в том, как продавать дороже и стабильнее"
+];
+var BLOCK_TIP = [
+  "Это самый частый ответ, и он лечится одним понятным планом на первые 30 дней",
+  "Хорошая новость: с нейросетями код писать не нужно, а первый дашборд обычно собирают за пару вечеров",
+  "Первые клиенты почти всегда находятся среди знакомых и в чатах селлеров, главное знать, что им написать",
+  "Цена зависит не от количества часов, а от того, какую проблему клиента вы решаете. Это быстро настраивается",
+  "Значит, нужен путь без лишнего: одна услуга, один шаблон, один канал поиска клиентов"
+];
+var EXP_TIP = [
+  "Ничего страшного, многие ученики начинали с нуля. Главное, что вы здесь 🙂",
+  "Этого уже достаточно, чтобы собрать первый дашборд на нейросетях",
+  "Вы ближе к первым деньгам, чем думаете, дело за упаковкой и клиентами"
+];
+var CALL = [
+  ["Подберём направление и формат услуги именно под вас", "Распишем шаги до первого заказа", "Посчитаем, сколько реально зарабатывать на старте"],
+  ["Покажем, как собрать дашборд с нейросетями без кода", "Подберём первый проект под ваш уровень", "Распишем шаги до первого заказа"],
+  ["Разберём, где именно искать ваших первых клиентов", "Дадим, что им написать", "Посчитаем, сколько клиентов нужно до вашей цели"],
+  ["Посчитаем цену вашей работы и как её объяснить клиенту", "Соберём пакеты услуг от простого к дорогому", "Посчитаем, сколько клиентов нужно до вашей цели"],
+  ["Соберём самый короткий путь до первых денег", "Уберём всё лишнее под ваше время", "Распишем план на ближайший месяц"]
+];
+
+var FLOW = ["start", "seg", "income", "goal", "block", "exp", "contact"];
+var idx = 0;
+var app = document.getElementById("app");
+
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function nm() { return esc(S.name || "Друг"); }
+function money(n) {
+  if (n >= 1000000) { var v = n / 1000000; return (v % 1 === 0 ? v : v.toFixed(1).replace(".", ",")) + " млн ₽"; }
+  return Math.round(n / 1000) + " тыс. ₽";
+}
+function defaultGoal() {
+  var want = S.income != null ? INCOME_VAL[S.income] * 1.8 : 100000;
+  for (var i = 0; i < GOALS.length; i++) if (GOALS[i] >= want) return i;
+  return GOALS.length - 1;
+}
+
+function frame() {
+  var total = FLOW.length - 1;
+  document.getElementById("prog").style.width = (idx / (total + 1) * 100) + "%";
+  document.getElementById("count").textContent = idx === 0 ? "" : idx + " / " + total;
+  document.getElementById("back").disabled = idx === 0;
+}
+function go(i) { idx = i; render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+function next() { go(idx + 1); }
+document.getElementById("back").onclick = function () { if (idx > 0) go(idx - 1); };
+
+function opts(list, sel) {
+  return '<div class="stack">' + list.map(function (t, i) {
+    var on = sel === i;
+    return '<button class="opt' + (on ? " on" : "") + '" data-i="' + i + '" aria-pressed="' + on + '"><span class="box">' + (on ? "✓" : "") + "</span>" + esc(t) + "</button>";
+  }).join("") + "</div>";
+}
+function tip(t) { return t ? '<div class="insight"><p>' + t + "</p></div>" : ""; }
+function nextBtn(ok, label) { return '<div class="actions"><button class="btn wide" id="next"' + (ok ? "" : " disabled") + ">" + (label || "Дальше") + "</button></div>"; }
+function choice(q, list, key, tips, lead) {
+  var v = S[key];
+  app.innerHTML = "<h2>" + q + "</h2>" + (lead ? '<p class="lead">' + lead + "</p>" : "") + opts(list, v) + tip(v != null && tips ? tips[v] : "") + nextBtn(v != null);
+  app.querySelectorAll(".opt").forEach(function (b) { b.onclick = function () { S[key] = +b.dataset.i; render(); }; });
+  document.getElementById("next").onclick = next;
+}
+
+var SCREENS = {
+  start: function () {
+    app.innerHTML =
+      '<p class="eyebrow">Запись эфира про дашборды</p>' +
+      "<h1>Заберите запись и узнайте свой путь к заработку на дашбордах</h1>" +
+      '<p class="lead">5 коротких вопросов, 2 минуты. В конце запись эфира и ваш следующий шаг.</p>' +
+      '<div class="field" style="margin-top:26px"><label for="f-name">Как к вам обращаться?</label>' +
+      '<input type="text" id="f-name" autocomplete="given-name" placeholder="Например, Анна" value="' + esc(S.name) + '"></div>' +
+      nextBtn(!!S.name, "Поехали");
+    var inp = document.getElementById("f-name"), b = document.getElementById("next");
+    inp.oninput = function () { S.name = inp.value.trim(); b.disabled = !S.name; };
+    inp.onkeydown = function (e) { if (e.key === "Enter" && S.name) next(); };
+    b.onclick = next;
+  },
+  seg: function () { choice(nm() + ", чем вы сейчас занимаетесь?", SEG, "seg", SEG_TIP); },
+  income: function () { choice("Сколько вы сейчас зарабатываете в месяц?", INCOME, "income", null, "Это нужно, чтобы эксперт посчитал ваш план от реальной точки"); },
+  goal: function () {
+    if (S.goal == null) S.goal = defaultGoal();
+    app.innerHTML = "<h2>Сколько хотите зарабатывать через 3 месяца?</h2>" +
+      '<div class="range-val" id="rv">' + money(GOALS[S.goal]) + "</div>" +
+      '<input type="range" id="f-goal" min="0" max="' + (GOALS.length - 1) + '" step="1" value="' + S.goal + '" aria-label="Желаемый доход в месяц">' +
+      '<div class="range-ends"><span>50 тыс.</span><span>1 млн</span></div>' +
+      tip("Двигайте ползунок, честная цифра поможет собрать реалистичный план") + nextBtn(true);
+    var r = document.getElementById("f-goal");
+    r.oninput = function () { S.goal = +r.value; document.getElementById("rv").textContent = money(GOALS[S.goal]); };
+    document.getElementById("next").onclick = next;
+  },
+  block: function () { choice("Что больше всего мешает начать зарабатывать на дашбордах?", BLOCK, "block", BLOCK_TIP); },
+  exp: function () { choice("Какой у вас опыт с таблицами и нейросетями?", EXP, "exp", EXP_TIP); },
+  contact: function () {
+    app.innerHTML = "<h2>" + nm() + ", запись почти ваша</h2>" +
+      '<p class="lead">Оставьте телефон, чтобы мы прислали её вам и не потерялись</p>' +
+      '<div class="stack" style="gap:16px;margin-top:20px">' +
+      '<div class="field"><label for="f-phone">Телефон</label><input type="tel" id="f-phone" autocomplete="tel" placeholder="+7 900 000-00-00" value="' + esc(S.phone) + '"></div>' +
+      '<div class="field"><label for="f-tg">Ник в Телеграме <span style="color:var(--muted);font-weight:500">(по желанию)</span></label><input type="text" id="f-tg" placeholder="@nickname" value="' + esc(S.tg) + '"></div>' +
+      '<label class="consent"><input type="checkbox" id="f-ok"' + (S.consent ? " checked" : "") + "><span>Согласен на обработку персональных данных и на то, чтобы со мной связались</span></label>" +
+      "</div>" + nextBtn(false, "Получить запись");
+    var ph = document.getElementById("f-phone"), tg = document.getElementById("f-tg"), ok = document.getElementById("f-ok"), b = document.getElementById("next");
+    function check() {
+      S.phone = ph.value.trim(); S.tg = tg.value.trim(); S.consent = ok.checked;
+      b.disabled = !(S.phone.replace(/\D/g, "").length >= 10 && S.consent);
+    }
+    ph.oninput = tg.oninput = ok.onchange = check; check();
+    b.onclick = function () { send("quiz_done"); final(); };
+  }
+};
+
+function render() { frame(); SCREENS[FLOW[idx]](); }
+
+function priority() { return (S.seg === 1 || S.seg === 4 || S.exp === 2 || S.income >= 2) ? "высокий" : "обычный"; }
+
+function send(event) {
+  var payload = {
+    event: event, date: new Date().toLocaleString("ru-RU"),
+    name: S.name, phone: S.phone, tg: S.tg,
+    segment: S.seg != null ? SEG[S.seg] : "",
+    income: S.income != null ? INCOME[S.income] : "",
+    goal: S.goal != null ? GOALS[S.goal] : "",
+    block: S.block != null ? BLOCK[S.block] : "",
+    exp: S.exp != null ? EXP[S.exp] : "",
+    priority: priority()
+  };
+  if (!CONFIG.WEBHOOK_URL) return;
+  try {
+    fetch(CONFIG.WEBHOOK_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload) }).catch(function () {});
+  } catch (e) {}
+}
+
+function final() {
+  document.getElementById("prog").style.width = "100%";
+  document.getElementById("count").textContent = "готово";
+  document.getElementById("back").disabled = true;
+  window.scrollTo({ top: 0 });
+  var cur = INCOME_VAL[S.income], goal = GOALS[S.goal];
+  var pct = Math.max(6, Math.min(100, cur / goal * 100));
+  app.innerHTML =
+    '<p class="eyebrow">Готово</p><h1>' + nm() + ", вот ваша запись</h1>" +
+    '<div class="rec"><div><h3>Эфир про дашборды</h3><p>Смотрите в удобное время</p></div>' +
+    '<a class="btn ghost" href="' + esc(CONFIG.RECORDING_URL || "#") + '" target="_blank" rel="noopener">Смотреть запись</a></div>' +
+    '<div class="gap"><div class="gap-row"><div><div class="cap">Сейчас</div><div class="v">' + INCOME[S.income] + '</div></div><div style="text-align:right"><div class="cap">Цель через 3 месяца</div><div class="v acc">' + money(goal) + "</div></div></div>" +
+    '<div class="track"><i style="width:' + pct + '%"></i></div></div>' +
+    '<p>Запись покажет, как дашборды устроены. А вот как именно вам дойти до ' + money(goal) + ", с вашим опытом и вашим временем, лучше разобрать лично.</p>" +
+    '<div class="cta"><h2>Бесплатный разбор: как вам заработать на дашбордах</h2>' +
+    "<p>За 40 минут эксперт нашей команды:</p><ul>" + CALL[S.block].map(function (t) { return "<li>" + t + "</li>"; }).join("") + "</ul>" +
+    '<a class="btn wide" id="book" href="' + esc(CONFIG.BOOKING_URL) + '" target="_blank" rel="noopener">Записаться на разбор</a>' +
+    "<small>Напишите менеджеру слово «" + esc(CONFIG.BOOKING_WORD) + "». Мест немного, эксперты берут по несколько человек в день</small></div>";
+  document.getElementById("book").addEventListener("click", function () { send("booking_click"); });
+}
+
+render();
+</script>
