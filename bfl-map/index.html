@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Контент-завод БФЛ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: спокойная рабочая карта, чистая и читабельная
+IDEA: светящаяся схема завода, ветки как линии подачи
+PICTURE: сама карта на весь экран, крупные узлы, тонкие изогнутые связи
+COLOUR and TYPE: белый фон, синий основной, голубой и тёмно-синий для веток; Inter Tight + Inter
+LAYOUT: панель сверху, карта ниже, клик раскрывает ветку
+*/
+:root{color-scheme:light;--bg:#f4f7fd;--ink:#0f1b3d;--mute:#5b6785;--card:#fff;--card2:#fff;--line:#d6def0;--rose:#2f5bea;--dusk:#0ea5e9;--mint:#1e40af;--gold:#f5b400}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif;overflow:hidden}
+header{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:14px max(2vw,14px);background:linear-gradient(#f4f7fd 70%,rgba(244,247,253,0))}
+h1{font:300 clamp(22px,3vw,34px)/1.05 'Inter Tight',sans-serif;margin:0 auto 0 0;letter-spacing:-.01em}
+h1 b{font-weight:700}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,input{font:500 14px Inter,sans-serif;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:999px;height:40px;padding:0 16px;cursor:pointer}
+button:hover{border-color:var(--rose)}
+button:focus-visible,input:focus-visible,.card:focus-visible{outline:2px solid var(--rose);outline-offset:2px}
+input{width:210px;cursor:text;font-size:16px}
+input::placeholder{color:var(--mute)}button{background:#fff}
+#vp{position:absolute;inset:0;cursor:grab;touch-action:none}
+#vp.drag{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0;padding:40px 60px}
+svg#links{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.n{display:flex;align-items:center;gap:56px;flex-shrink:0}.card,.kids{flex-shrink:0}
+.kids{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.kids.row{flex-direction:row;align-items:flex-start;gap:40px}
+.kids.row>.n{flex-direction:column;align-items:flex-start;gap:22px}
+.kids.row>.n>.kids{gap:12px}
+.n.closed>.kids{display:none}
+.card{position:relative;background:var(--card);border:1px solid var(--line);box-shadow:0 2px 10px rgba(15,27,61,.06);border-radius:16px;padding:12px 16px;max-width:320px;cursor:default;transition:border-color .2s,box-shadow .2s,opacity .2s}
+.card.has{cursor:pointer}
+.card.has::after{content:attr(data-c);position:absolute;right:-13px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:var(--c);color:#fff;font:700 12px/24px Inter;text-align:center}
+.n:not(.closed)>.card.has::after{content:'−'}
+.card:hover{border-color:var(--c)}
+.t{font-weight:600}
+.card ol,.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.card p{margin:6px 0 0;color:#26324f}
+.card .sub{color:var(--mute);font-size:13px;margin-top:4px}
+.root{background:var(--rose);color:#fff;border:0;font:700 22px/1.1 'Inter Tight',Inter,sans-serif;padding:22px 26px;max-width:220px;box-shadow:0 12px 40px rgba(47,91,234,.35)}
+.root::after{background:#fff!important;color:var(--rose)!important}
+.l1{background:color-mix(in srgb,var(--c) 10%,#fff);border:1.5px solid var(--c);font:700 18px/1.2 'Inter Tight',Inter,sans-serif;padding:14px 20px;box-shadow:0 0 30px color-mix(in srgb,var(--c) 22%,transparent)}
+.step{border-top:3px solid var(--c);min-width:180px}
+.step .num{font:700 26px/1 'Inter Tight',Inter,sans-serif;color:var(--c);margin-bottom:4px}
+.big{font:700 22px/1.15 'Inter Tight',Inter,sans-serif;color:var(--c)}
+.wide{max-width:430px}
+.media{display:flex;gap:8px;margin-top:8px}
+.media img{width:92px;border-radius:10px;display:block}
+.shot{width:380px;border-radius:10px;margin-top:8px;display:block}
+a{color:var(--c)}
+table{border-collapse:collapse;margin-top:8px;font-size:13px;width:100%}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+tr.hl td{color:var(--rose);font-weight:700}
+.dim .card{opacity:.25}
+.dim .card.hit{opacity:1;border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+.hint{position:fixed;left:max(2vw,14px);bottom:14px;color:var(--mute);font-size:13px;z-index:5;background:rgba(244,247,253,.85);padding:4px 8px;border-radius:8px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
+.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:6px}
+@media(max-width:600px){header{padding:10px 12px;gap:8px}h1{width:100%;font-size:20px}.tools{width:100%;gap:6px}input{width:100%;height:36px}button{height:34px;padding:0 12px;font-size:13px}.hint{display:none}}
+.vid{position:relative;padding:0;border:0;height:auto;border-radius:10px;overflow:hidden;background:#000;cursor:pointer}
+.vid span{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;color:#fff;background:rgba(15,27,61,.25)}
+.vid:hover span{background:rgba(47,91,234,.45)}
+#lb{position:fixed;inset:0;z-index:20;background:rgba(15,27,61,.82);display:none;place-items:center}
+#lb.on{display:grid}#lb video{max-height:88vh;max-width:92vw;border-radius:14px;background:#000}
+#lbx{position:absolute;top:16px;right:16px;background:#fff;color:#0f1b3d}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1><b>Контент-завод</b> для банкротства физлиц</h1>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Поиск по карте" aria-label="Поиск по карте">
+    <button id="open">Развернуть всё</button>
+    <button id="close">Только ветки</button>
+    <button id="fit">По размеру</button>
+    <button id="zin" aria-label="Приблизить">+</button>
+    <button id="zout" aria-label="Отдалить">−</button>
+  </div>
+</header>
+<div id="vp"><div id="world"><svg id="links"></svg><div id="tree"></div></div></div>
+<div id="lb" role="dialog" aria-label="Ролик"><button id="lbx">Закрыть</button><video id="lbv" controls playsinline></video></div>
+<div class="hint">Кликните по блоку, чтобы раскрыть или свернуть. Тащите карту мышкой, колесо приближает</div>
+<script>
+{
+const SHEET='https://docs.google.com/spreadsheets/d/1JRoAOw7mxmQShsLS7YxHH3VDWStVeT5Hb3f7LalcIfM/edit?gid=1539076990#gid=1539076990';
+const C=['#2f5bea','#0ea5e9','#1e40af'];
+const T=(t,o={})=>Object.assign({t},o);
+const data=T('Система контент-маркетинга',{cls:'root',kids:[
+ T('Что из себя представляет',{cls:'l1',kids:[
+  T('Массовая публикация контента в социальные сети',{kids:[
+   T('От 15 соц.сетей',{kids:[T('',{cls:'wide',html:`<ol><li><b>Ролики:</b> Instagram 2-3 аккаунта, Вконтакте, Youtube Shorts, Tiktok, Rutube, Likee</li><li><b>Тексты/статьи:</b> Дзен, Threads, Vc.ru, Tenchat, X, Telegram, Max, Одноклассники, Facebook, X, Reddit</li><li><b>Фото/графика:</b> Pinterest</li></ol><p>Масштабируемость: через рост кол-ва площадок и аккаунтов на этих площадках</p>`})]}),
+   T('От 45 единиц контента в день по 3 в каждую соц.сеть')]}),
+  T('Зачем нужен контент маркетинг',{kids:[
+   T('Низкая стоимость лида'),T('Возможность получить охват от нескольких миллионов человек'),
+   T('Конкурентная отсрочка за счет личного бренда'),T('Выход в новые сегменты ЦА')]}),
+  T('Этапы создания контента',{row:1,kids:[
+   T('Поиск трендов',{num:1,cls:'step',kids:[T('Подключаем парсеры, которые 2-10 раз в день ищут охватный контент по кодовым словам'),T('Создается автообновляемая таблица по всем актуальным темам и трендам')]}),
+   T('Сценарии',{num:2,cls:'step',kids:[T('На базе аналитики трендов и новинок формируем свой банк сценариев, который пополняется с каждым новым найденным роликом/постом'),T('Предварительно формируется «паспорт бренда»: что можно говорить, каким языком, какое держим позиционирование и т.д.')]}),
+   T('Проверка',{num:3,cls:'step',kids:[T('Проверка всех сценариев: факт-чек, сверка с голосом бренда, наличие кодовых слов. ИИ проверяет сценарии по чек листу')]}),
+   T('Сбор и создание материалов',{num:4,cls:'step',kids:[T('ИИ подбирает подходящие по смыслам нарезки видео/фото, которые мы даем'),T('Если развиваемся через мультфильмы/анимацию, то создается фирменный стиль и персонажи. Если через ИИ-аватара, то аватар')]}),
+   T('Монтаж',{num:5,cls:'step',kids:[T('Все материалы еще раз проверяются на соответствие смыслам и монтируются')]}),
+   T('Подготовка к публикации',{num:6,cls:'step',kids:[T('Из 1 темы создается: ролик, мультфильм, текстовый пост, статья и карусель')]})]})]}),
+ T('Этапы',{cls:'l1',kids:[
+  T('1: Аналитика (3-5 дней)',{kids:[
+   T('',{html:`<ol><li>Анализ ЦА через кастдевы</li><li>Анализ конкурентов</li><li>Анализ текущих воронок</li><li>Анализ продуктов</li><li>Сбор материалов, отзывов и кейсов</li></ol>`,kids:[
+    T('',{cls:'wide',html:`<p style="margin:0"><b>ЦА:</b> кто клиент, где живет, сколько ему лет, семейное положение, чем занимается, о чем мечтает, чего боится, чем живет, о чем постоянно думает, за что переживает, какие боли/желания/цели/потребности</p><p>Какие есть кейсы и отзывы</p><p>Необходимо, чтобы сформировать смыслы для контента</p>`,kids:[
+     T('Форматы контента',{html:`<ol><li>ролики (видео + подпись / сценки / ии-аватар / мультфильмы / анимация с озвучкой)</li><li>Статьи (Дзен, Vc.ru)</li><li>Текстовые посты (TG, Threads)</li><li>Картинки (Pinterest и карусели в Instagram)</li></ol>`,kids:[
+      T('Примеры роликов в нише «банкротство физических лиц»',{html:`<p><a href="${SHEET}" target="_blank" rel="noopener">Открыть таблицу Топ-30 форматов</a></p><a href="${SHEET}" target="_blank" rel="noopener"><img class="shot" src="table.jpg" alt="Таблица примеров роликов"></a>`}),
+      T('Примеры роликов, которые мы можем делать',{html:`<div class="media">${[1,2,3,4].map(k=>`<button class="vid" data-v="v/v${k}.mp4" aria-label="Смотреть ролик ${k}"><img src="v/v${k}.jpg" alt=""><span>▶</span></button>`).join('')}</div><div class="sub">Нажмите, чтобы посмотреть</div>`})]})]}),
+    T('Анализ конкурентов:',{html:`<ul><li>Какие воронки используют</li><li>Какой контент дает больше всего охвата и записей. Формат контента</li><li>Репутация в соц.сетях</li><li>Сработавшие гипотезы</li></ul>`}),
+    T('Текущие воронки:',{html:`<ul><li>Какая воронка дает наилучшие конверсии</li><li>Какие есть лид-магниты, трипваеры, основные продукты, максимизаторы прибыли</li><li>Что уже пробовали и какие получили результаты</li><li>Какие лучше всего работают скрипты</li><li>Конверсии менеджеров</li><li>Команда под каждую воронку</li><li>Как идет работа с текущей базой</li></ul>`,kids:[
+     T('Примеры воронок под нишу:',{cls:'wide',html:`<ul><li>лид-магнит: калькулятор «сколько переплатите» или чек-лист «что не могут забрать при банкротстве»;</li><li>«диагностическая»: для конечного клиента лучше «бесплатная проверка, подходит ли вам банкротство»;</li><li>трипваер: например, анализ кредитной истории или пакет документов для МФЦ за 990-1 500 ₽.</li></ul>`})]}),
+    T('Продукты:',{html:`<ul><li>Ср. чек по каждому продукту</li><li>Портрет клиента по каждому продукту</li><li>Лучшая воронка по каждому продукту</li><li>Кастдевы и отзывы по каждому продукту</li></ul>`})]})]}),
+  T('2: Создание матрицы тем, контент плана, продуктов и воронок (5-7 дней)',{kids:[
+   T('',{cls:'wide',html:`<ol><li>Разрабатывается: облако смыслов и тем, паспорт бренда, лучшие форматы контента. Если выбираем развиваться через мультики/анимацию, то героев, стиль и референсы. Если делаем ИИ-аватара, то также прорабатываем портрет</li><li>Формируем от 3 воронок (1 - лидмагнитную, 2 - диагностическую, 3 - трипваерную) для каждой соц.сети</li><li>Создаем/дорабатываем продукт под каждую воронку, если его нет</li></ol>`})]}),
+  T('3. Готовим техническую часть (7-10 дней)',{html:`<p>Заводим и верифицируем соц.сети, разворачиваем на сервере контент-завод, подключаем автоматизации в сообщениях и ботов для записей на диагностику и выдачей лид-магнита</p>`,kids:[
+   T('',{html:`<ol><li><b>Соцсети:</b> создаются страницы, верифицируются, оформляются</li><li><b>Техничка:</b> покупаются подписки на ИИ, боты, сервер, устанавливается система безопасности</li><li><b>Продажи:</b> подключается платежный модуль и документы для приема платежей</li></ol>`})]}),
+  T('4. Выпускаем первые 200 единиц контента (рабочая неделя) и корректируем формат',{kids:[
+   T('',{html:`<ol><li>Сбор метрик в таблицу</li><li>Первые кастдевы с лидами в воронке</li><li>Подбор новых смыслов и форматов</li><li>Создание плана до конца месяца с учетом корректировок</li><li>Выявление самой эффективной воронки</li></ol>`})]}),
+  T('5. Корпоративное обучение (3-4 дня)',{kids:[T('Обучаем команду пользоваться контент-заводом')]}),
+  T('6. Регулярная публикация контента и ежедневный + еженедельный сбор метрик')]}),
+ T('Плановые показатели и цели',{cls:'l1',row:1,kids:[
+  T('45 ед.контента в день',{cls:'step',sub:'15 соц.сетей по 3 в день',big:1}),
+  T('1200-1250 ед.контента',{cls:'step',sub:'в месяц',big:1}),
+  T('3.5-5 млн охват',{cls:'step',sub:'в месяц',big:1}),
+  T('17 500 кодовых слов (лидов)',{cls:'step',sub:'CR в кодовое слово (лида) 0,2-0,5%',big:1,kids:[
+   T('Квалификация в боте',{cls:'wide',html:`<p>ИИ-бот выдаёт лид-магнит и задаёт 7 вопросов: сумма долга, кредиторы, доход, имущество, ипотека, просрочки, регион. Делит людей на три группы:</p><ul><li><b>подходит банкротство:</b> долг от 300 тыс.;</li><li><b>подходит МФЦ:</b> внесудебное банкротство;</li><li><b>пока не подходит.</b></li></ul><p class="big">CR 30% → 5 250 квалифицированных</p>`,kids:[
+    T('Ветка для тех, кто не подошёл',{cls:'wide',html:`<ul><li>Тех, кому подходит МФЦ, ведём в недорогой продукт: пакет документов для МФЦ.</li><li>Остальным предлагаем трипваер за 990-1 500 ₽: анализ кредитной истории или разовую консультацию.</li><li>Всех оставляем в рассылке. Через 2-3 месяца часть из них «дозревает»: долг растёт, появляются приставы.</li></ul>`}),
+    T('Запись на консультацию',{cls:'wide',html:`<p>Бот сам ставит человека в календарь юриста и напоминает за сутки и за час.</p><p class="big">CR 30% → 1 575 записей, явка 70% → ≈1 100 консультаций</p>`,kids:[
+     T('Консультация и договор',{cls:'wide',html:`<p>Юрист разбирает ситуацию по скрипту: что спишут, что останется, сроки, стоимость, рассрочка на 12-24 месяца.</p><p class="big">CR 35% от пришедших → ≈385 договоров</p><p>385 × 120 000 ₽ = ≈46 млн ₽ суммы договоров в месяц</p>`,kids:[
+      T('Осторожный расчёт',{cls:'wide',html:`<table><tr><th></th><th>Охват 2 млн</th><th>Охват 3,5 млн</th></tr><tr><td>Кодовые слова (0,2%)</td><td>4 000</td><td>7 000</td></tr><tr><td>Квалифицированные (30%)</td><td>1 200</td><td>2 100</td></tr><tr><td>Консультации (30%)</td><td>360</td><td>630</td></tr><tr class="hl"><td>Договоры (25%)</td><td>90</td><td>≈155</td></tr><tr><td>Сумма договоров (по 120 000 ₽)</td><td>10,8 млн ₽</td><td>18,6 млн ₽</td></tr><tr class="hl"><td>Цена договора</td><td>≈5 600 ₽</td><td>≈3 200 ₽</td></tr></table>`})]})]})]})]})]})]});
+
+const tree=document.getElementById('tree'),svg=document.getElementById('links'),world=document.getElementById('world'),vp=document.getElementById('vp');
+let id=0;const nodes=[];
+function build(d,color,depth,parentEl){
+  const n=document.createElement('div');n.className='n';
+  const c=document.createElement('div');c.className='card '+(d.cls||'');c.style.setProperty('--c',color);
+  c.innerHTML=(d.num?`<div class="num">${d.num}</div>`:'')+(d.t?`<div class="${d.big?'big':'t'}">${d.t}</div>`:'')+(d.sub?`<div class="sub">${d.sub}</div>`:'')+(d.html||'');
+  n.appendChild(c);d.el=n;d.card=c;d.color=color;nodes.push(d);
+  if(d.kids&&d.kids.length){
+    c.classList.add('has');c.tabIndex=0;c.dataset.c=d.kids.length;
+    const k=document.createElement('div');k.className='kids'+(d.row?' row':'');n.appendChild(k);
+    d.kids.forEach((ch,i)=>{ch.parent=d;ch.prevSib=d.row&&i?d.kids[i-1]:null;build(ch,depth===0?C[i%C.length]:color,depth+1,k)});
+    const tog=e=>{if(e.target.closest('a'))return;n.classList.toggle('closed');draw()};
+    c.addEventListener('click',tog);c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog(e)}});
+  }
+  parentEl.appendChild(n);
+}
+build(data,'#2f5bea',0,tree);
+let s=1,x=0,y=0;
+const apply=()=>{world.style.transform=`translate(${x}px,${y}px) scale(${s})`};
+function vis(d){let p=d.parent;while(p){if(p.el.classList.contains('closed'))return false;p=p.parent}return true}
+function draw(){
+  const wr=world.getBoundingClientRect();let paths='';
+  const R=el=>{const r=el.getBoundingClientRect();return{l:(r.left-wr.left)/s,t:(r.top-wr.top)/s,w:r.width/s,h:r.height/s}};
+  for(const d of nodes){
+    if(!d.parent||!vis(d))continue;
+    const a=R(d.parent.card),b=R(d.card);let x1,y1,x2,y2;
+    if(d.parent.row){
+      if(d.prevSib){const p=R(d.prevSib.card);x1=p.l+p.w;y1=p.t+p.h/2;x2=b.l;y2=b.t+b.h/2;paths+=`<path d="M${x1} ${y1}C${(x1+x2)/2} ${y1} ${(x1+x2)/2} ${y2} ${x2} ${y2}" stroke="${d.color}" stroke-width="2" fill="none" marker-end="url(#ar)" opacity=".9"/>`;continue}
+      x1=a.l+a.w;y1=a.t+a.h/2;x2=b.l;y2=b.t+b.h/2;
+    }else if(d.parent.parent&&d.parent.parent.row){
+      x1=a.l+24;y1=a.t+a.h;x2=b.l;y2=b.t+Math.min(22,b.h/2);
+      paths+=`<path d="M${x1} ${y1}V${y2-10}Q${x1} ${y2} ${x1+10} ${y2}H${x2}" stroke="${d.color}" stroke-width="1.5" fill="none" opacity=".5"/>`;continue;
+    }else{x1=a.l+a.w+(d.parent.card.classList.contains('has')?11:0);y1=a.t+a.h/2;x2=b.l;y2=b.t+b.h/2}
+    const mx=(x1+x2)/2;paths+=`<path d="M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}" stroke="${d.color}" stroke-width="1.6" fill="none" opacity=".55"/>`;
+  }
+  svg.setAttribute('width',world.scrollWidth);svg.setAttribute('height',world.scrollHeight);
+  svg.innerHTML=`<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2f5bea"/></marker></defs>`+paths;
+}
+function fit(){const hh=document.querySelector('header').offsetHeight,W=world.scrollWidth,H=world.scrollHeight,vw=vp.clientWidth,vh=vp.clientHeight-hh-40;s=Math.min(1.1,Math.max(.12,Math.min(vw/W,vh/H)));x=(vw-W*s)/2;y=hh+Math.max(0,(vh-H*s)/2);apply();draw()}
+const setAll=(open,lvl)=>{for(const d of nodes){if(!d.kids)continue;let dep=0,p=d.parent;while(p){dep++;p=p.parent}d.el.classList.toggle('closed',!open&&dep>=lvl)}requestAnimationFrame(fit)};
+document.getElementById('open').onclick=()=>setAll(true);
+document.getElementById('close').onclick=()=>setAll(false,1);
+document.getElementById('fit').onclick=fit;
+const zoom=(k,cx=vp.clientWidth/2,cy=vp.clientHeight/2)=>{const ns=Math.min(2.5,Math.max(.12,s*k));x=cx-(cx-x)*ns/s;y=cy-(cy-y)*ns/s;s=ns;apply();draw()};
+document.getElementById('zin').onclick=()=>zoom(1.2);document.getElementById('zout').onclick=()=>zoom(1/1.2);
+vp.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?1.1:1/1.1,e.clientX,e.clientY)},{passive:false});
+let drag=null;
+vp.addEventListener('pointerdown',e=>{if(e.target.closest('.card'))return;drag={sx:e.clientX,sy:e.clientY,x,y};vp.classList.add('drag');vp.setPointerCapture(e.pointerId)});
+vp.addEventListener('pointermove',e=>{if(!drag)return;x=drag.x+e.clientX-drag.sx;y=drag.y+e.clientY-drag.sy;apply()});
+vp.addEventListener('pointerup',()=>{drag=null;vp.classList.remove('drag')});
+document.getElementById('q').addEventListener('input',e=>{
+  const q=e.target.value.trim().toLowerCase();tree.classList.toggle('dim',!!q);
+  for(const d of nodes){const hit=q&&d.card.textContent.toLowerCase().includes(q);d.card.classList.toggle('hit',!!hit);if(hit){let p=d.parent;while(p){p.el.classList.remove('closed');p=p.parent}}}
+  draw();
+});
+new ResizeObserver(draw).observe(tree);
+const lb=document.getElementById('lb'),lbv=document.getElementById('lbv');
+tree.addEventListener('click',e=>{const b=e.target.closest('.vid');if(!b)return;e.stopPropagation();lbv.src=b.dataset.v;lb.classList.add('on');lbv.play().catch(()=>{})},true);
+const closeLb=()=>{lbv.pause();lbv.removeAttribute('src');lbv.load();lb.classList.remove('on')};
+document.getElementById('lbx').onclick=closeLb;lb.addEventListener('click',e=>{if(e.target===lb)closeLb()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb()});
+setAll(false,2);
+window.addEventListener('resize',fit);document.fonts&&document.fonts.ready.then(fit);
+}
+</script>
+</body>
+</html>
